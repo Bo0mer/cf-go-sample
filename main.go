@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 )
 
 type appConfig struct {
@@ -24,13 +26,28 @@ type limitsConfig struct {
 }
 
 func main() {
-	t, err := template.New("index.html").Parse(indexHTMLTemplate)
+	indexHTML, err := ioutil.ReadFile("./templates/index.html")
+	if err != nil {
+		log.Fatalf("error reading index.html template file: %v", err)
+	}
+
+	t, err := template.New("index.html").Parse(string(indexHTML))
 	if err != nil {
 		log.Fatalf("error parsing index.html template: %v", err)
 	}
 
 	srv := &server{t: t}
-	http.ListenAndServe(":7777", srv)
+	portStr := os.Getenv("PORT")
+	if portStr == "" {
+		portStr = "7777"
+	}
+
+	port, err := strconv.ParseInt(portStr, 10, 64)
+	if err != nil {
+		log.Fatalf("invalid port number: %v", err)
+	}
+
+	http.ListenAndServe(fmt.Sprintf(":%d", port), srv)
 }
 
 type server struct {
